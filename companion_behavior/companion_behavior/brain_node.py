@@ -18,17 +18,17 @@ from google import genai
 from vosk import Model, KaldiRecognizer
 
 
-MODEL_PATH = "models/vosk-model-small-en-us-0.15"
+MODEL_PATH = "mbot_ws/src/companion_behavior/companion_behavior/models/vosk-model-small-en-us-0.15"
 SAMPLE_RATE = 16000
 
 # If NoMachine chooses the wrong input, set this to an integer index.
 # Run: python -m sounddevice
 # Choose a real mic input, NOT anything ending in ".monitor".
-INPUT_DEVICE = None
+INPUT_DEVICE = "default"
 
 # Use a wake word so the robot does not respond to every random sound.
 USE_WAKE_WORD = True
-WAKE_WORDS = ["robot", "hey robot", "companion", "mbot"]
+WAKE_WORDS = ["robot", "hey robot", "companion", "mbot", "hi robot"]
 
 
 class CompanionBrain(Node):
@@ -66,11 +66,11 @@ class CompanionBrain(Node):
         # Movement tuning from your current follow logic
         self.person_timeout = 1.5
         self.image_center_x = 320.0
-        self.turn_gain = 0.0012
+        self.turn_gain = 0.0015
         self.invert_steering = -1.0
-        self.max_turn_speed = 0.4
+        self.max_turn_speed = 0.6
         self.arrival_distance = 0.75
-        self.approach_speed = 0.15
+        self.approach_speed = 0.3
 
         # Gemini setup
         load_dotenv()

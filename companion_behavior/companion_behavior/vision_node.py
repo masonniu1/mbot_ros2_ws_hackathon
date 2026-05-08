@@ -17,7 +17,7 @@ class CompanionVision(Node):
         self.image_path = "/dev/shm/companion_eye.jpg"
         
         # Run the detection loop at 5 Hz (every 0.2 seconds)
-        self.timer = self.create_timer(0.2, self.detect_person)
+        self.timer = self.create_timer(0.1, self.detect_person)
         self.get_logger().info("Vision Node Started. Looking for elderly companion...")
 
     def detect_person(self):
