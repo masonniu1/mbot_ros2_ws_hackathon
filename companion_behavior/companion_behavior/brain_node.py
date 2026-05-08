@@ -61,6 +61,7 @@ class CompanionBrain(Node):
         cmd.angular.z = max(-0.4, min(0.4, turn_speed)) * INVERT_STEERING
 
         # --- FIX 2: THE SMOOTH ARC APPROACH ---
+        #/home/mbot/mbot_ws/src/companion_behavior/companion_behavior/brain_node.py
         # 3. Move forward AND steer at the same time
         if self.front_distance <= 0.75: 
             # We have arrived! 1 meter away.
