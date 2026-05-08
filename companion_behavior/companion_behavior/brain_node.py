@@ -36,29 +36,51 @@ class CompanionBrain(Node):
     def control_loop(self):
         cmd = Twist()
         
-        # 1. Have we seen a person recently? (Within the last 1 second)
-        if self.person_x is None or (time.time() - self.last_seen_time > 1.0):
+        # 1. Have we seen a person recently? 
+        # Increased to 1.5s to account for the 2Hz camera update rate + processing lag
+        time_since_last_seen = time.time() - self.last_seen_time
+        if self.person_x is None or time_since_last_seen > 1.5:
             cmd.angular.z = 0.0
             cmd.linear.x = 0.0
             self.cmd_pub.publish(cmd)
             return
 
-        # 2. Steer towards the person (Center of a 640px image is 320)
-        error = 320 - self.person_x
-        turn_speed = error * 0.003  # Kp Gain: Adjust this to turn faster/slower
+        # 2. Steer towards the person
+        error = 320.0 - float(self.person_x)
         
-        # Clamp maximum turn speed
-        cmd.angular.z = max(-0.8, min(0.8, turn_speed))
+        # --- FIX 1: THE GAIN REDUCTION ---
+        # Because we only get 2 updates per second, we must turn SLOWER
+        # so we don't sweep past the center between photos.
+        # Reduced Kp gain from 0.003 to 0.0012
+        turn_speed = error * 0.0012  
+        
+        # Apply your steering inverter here (1.0 or -1.0 depending on what worked)
+        INVERT_STEERING = -1.0  
+        
+        # Clamp maximum turn speed to a lower value so it doesn't aggressively whip
+        cmd.angular.z = max(-0.4, min(0.4, turn_speed)) * INVERT_STEERING
 
-        # 3. Move forward if they are far, stop if they are close
-        if abs(error) < 150: # Only drive forward if they are mostly centered
-            if self.front_distance > 1.0: # 1 meter away
-                cmd.linear.x = 0.15 # Drive forward
-            else:
-                cmd.linear.x = 0.0  # Stop to talk!
-                # TODO: Trigger Gemini API Voice here!
+        # --- FIX 2: THE SMOOTH ARC APPROACH ---
+        # 3. Move forward AND steer at the same time
+        if self.front_distance <= 0.75: 
+            # We have arrived! 1 meter away.
+            cmd.linear.x = 0.0
+            cmd.angular.z = 0.0 # Force a stop to keep the camera steady
+            # TODO: Trigger Gemini API Voice here!
         else:
-            cmd.linear.x = 0.0 # Pivot in place to center them first
+            # Base approach speed
+            approach_speed = 0.15 
+            
+            # The "Speed Penalty" Hack:
+            # If the person is at the extreme edge of the screen (error is large),
+            # this calculation naturally slows the forward speed down so it has 
+            # time to carve a sharp turn. If they are perfectly centered (error = 0),
+            # it drives at full approach speed!
+            speed_penalty = abs(error) / 320.0 
+            cmd.linear.x = approach_speed * (1.0 - speed_penalty)
+            
+            # Safety clamp so it never tries to drive backwards
+            cmd.linear.x = max(0.0, cmd.linear.x)
 
         self.cmd_pub.publish(cmd)
 
